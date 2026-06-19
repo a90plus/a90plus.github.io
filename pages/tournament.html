@@ -37,7 +37,10 @@
       let t;
       try { t = await DataLoader.getTournament(year); } catch(e) { showError(el, e.message); return; }
 
-      const winnerC = t.countries.find(c => c.iso3 === t.winner);
+      const winnerC   = t.countries.find(c => c.iso3 === t.winner);
+      const runnerUpC = t.countries.find(c => c.iso3 === t.runnerUp);
+      const thirdC    = t.countries.find(c => c.iso3 === t.third);
+      const fourthC   = t.countries.find(c => c.iso3 === t.fourth);
       const finalM = t.matches.find(m => m.stage === 'Final');
 
       // Awards table
@@ -132,17 +135,17 @@
           </div>
           <div class="card" style="text-align:center">
             <div style="font-size:2rem;margin-bottom:.25rem">${flag(t.runnerUp)}</div>
-            <div style="font-weight:800">${t.runnerUp}</div>
+            <div style="font-weight:800">${runnerUpC ? runnerUpC.name : t.runnerUp}</div>
             <div style="font-size:.78rem;color:var(--text-muted)">Runner-Up</div>
           </div>
           <div class="card" style="text-align:center">
             <div style="font-size:2rem;margin-bottom:.25rem">${flag(t.third)}</div>
-            <div style="font-weight:800">${t.third}</div>
+            <div style="font-weight:800">${thirdC ? thirdC.name : t.third}</div>
             <div style="font-size:.78rem;color:var(--text-muted)">3rd Place</div>
           </div>
           <div class="card" style="text-align:center">
             <div style="font-size:2rem;margin-bottom:.25rem">${flag(t.fourth)}</div>
-            <div style="font-weight:800">${t.fourth}</div>
+            <div style="font-weight:800">${fourthC ? fourthC.name : t.fourth}</div>
             <div style="font-size:.78rem;color:var(--text-muted)">4th Place</div>
           </div>
         </div>

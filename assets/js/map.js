@@ -16,9 +16,31 @@ const WorldMap = (() => {
     None:         '#1a1e2a',
   };
 
-  // Map historical iso3 codes to Natural Earth alpha-3 for rendering
+  // Map FIFA codes → ISO alpha-3 for map rendering.
+  // Covers both historical nations and current FIFA codes that differ from ISO.
   const RENDER_MAP = {
+    // Historical (extinct) nations
     FRG: 'DEU', GDR: 'DEU', URS: 'RUS', YUG: 'SRB', TCH: 'CZE', ZAI: 'COD',
+    SCG: 'SRB', BOH: 'CZE', DEI: 'IDN', UAR: 'EGY', SAR: 'DEU',
+    // Current nations where FIFA code ≠ ISO alpha-3
+    CRC: 'CRI',  // Costa Rica
+    CRO: 'HRV',  // Croatia
+    DEN: 'DNK',  // Denmark
+    ENG: 'GBR',  // England
+    GER: 'DEU',  // Germany
+    HOL: 'NLD',  // Netherlands
+    KSA: 'SAU',  // Saudi Arabia
+    POR: 'PRT',  // Portugal
+    SUI: 'CHE',  // Switzerland
+    URU: 'URY',  // Uruguay
+    WAL: 'GBR',  // Wales
+    SCO: 'GBR',  // Scotland
+    NIR: 'GBR',  // Northern Ireland
+    IVO: 'CIV',  // Ivory Coast
+    TRI: 'TTO',  // Trinidad and Tobago
+    ALG: 'DZA',  // Algeria
+    ZIM: 'ZWE',  // Zimbabwe
+    NED: 'NLD',  // Netherlands (alternate FIFA code)
   };
 
   let svg = null, projection = null, path = null;
