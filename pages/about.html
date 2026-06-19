@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>About — a90plus</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/styles.css">
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-logo">a<em style="color:var(--accent)">90</em><span style="color:var(--text)">+</span></div>
+    <ul class="nav-links">
+      <li><a href="../index.html">Home</a></li><li><a href="world-map.html">Map</a></li>
+      <li><a href="tournament.html">Tournament</a></li><li><a href="country.html">Country</a></li>
+      <li><a href="records.html">Records</a></li><li><a href="players.html">Players</a></li>
+      <li><a href="timeline.html">Timeline</a></li><li><a href="about.html">About</a></li>
+    </ul>
+    <div class="nav-spacer"></div>
+    <div class="nav-year-pill">About</div>
+  </nav>
+  <div class="page" style="max-width:780px">
+    <div class="page-header">
+      <h1 class="page-title">About a90plus</h1>
+      <p class="page-subtitle">Design philosophy, data sources, and how to contribute.</p>
+    </div>
+
+    <div class="card" style="margin-bottom:1.5rem">
+      <h2 style="font-size:1.1rem;font-weight:700;margin-bottom:.75rem">The Per-Cup Philosophy</h2>
+      <p style="color:var(--text-muted);font-size:.92rem;line-height:1.7">
+        Every piece of data on a90plus is scoped to a single World Cup edition.
+        Messi's 2022 goals are stored only in <code style="background:var(--bg);padding:.1rem .35rem;border-radius:4px;font-family:var(--font-mono);font-size:.85em">2022.json</code>.
+        Argentina's 1978 title lives only in <code style="background:var(--bg);padding:.1rem .35rem;border-radius:4px;font-family:var(--font-mono);font-size:.85em">1978.json</code>.
+        There are <strong>no stored all-time totals, no career goals fields, no lifetime aggregates</strong>.
+      </p>
+      <p style="color:var(--text-muted);font-size:.92rem;line-height:1.7;margin-top:.75rem">
+        Any cross-tournament view you see (e.g. "all-time top scorers") is computed <em>at query time</em>
+        by summing across the per-cup files. The data layer stays clean and tournament-correct.
+        Historical nations like West Germany (FRG) are never merged with modern Germany (DEU).
+      </p>
+    </div>
+
+    <div class="card" style="margin-bottom:1.5rem">
+      <h2 style="font-size:1.1rem;font-weight:700;margin-bottom:.75rem">Event-Level Granularity</h2>
+      <p style="color:var(--text-muted);font-size:.92rem;line-height:1.7">
+        Goals, assists, cards, substitutions, and VAR decisions are all stored as typed
+        <strong>events</strong> — not as summary numbers. A player's goal count is always derived by
+        counting <code style="background:var(--bg);padding:.1rem .35rem;border-radius:4px;font-family:var(--font-mono);font-size:.85em">type: "goal"</code> events.
+        The match's <code style="background:var(--bg);padding:.1rem .35rem;border-radius:4px;font-family:var(--font-mono);font-size:.85em">events[]</code> array is the single source of truth.
+      </p>
+    </div>
+
+    <div class="card" style="margin-bottom:1.5rem">
+      <h2 style="font-size:1.1rem;font-weight:700;margin-bottom:.75rem">Data Sources</h2>
+      <ul style="color:var(--text-muted);font-size:.92rem;line-height:2;padding-left:1.25rem">
+        <li>FIFA Official Match Reports</li>
+        <li>Wikipedia FIFA World Cup articles</li>
+        <li>Transfermarkt player bios</li>
+        <li>RSSSF (Rec.Sport.Soccer Statistics Foundation)</li>
+        <li>Natural Earth (map geometry, public domain)</li>
+      </ul>
+      <p style="color:var(--text-muted);font-size:.82rem;margin-top:.75rem">
+        Current data files are marked <strong>isMock: true, verified: false</strong>. Figures may contain inaccuracies.
+        Please verify against primary sources before citing.
+      </p>
+    </div>
+
+    <div class="card" style="margin-bottom:1.5rem">
+      <h2 style="font-size:1.1rem;font-weight:700;margin-bottom:.75rem">Tech Stack</h2>
+      <ul style="color:var(--text-muted);font-size:.92rem;line-height:2;padding-left:1.25rem">
+        <li>Plain HTML + CSS + vanilla JavaScript — no build step, no framework</li>
+        <li>D3.js v7 + TopoJSON for the choropleth map (CDN)</li>
+        <li>Google Fonts (Inter) via CDN</li>
+        <li>Data served via jsDelivr CDN from the <code style="font-family:var(--font-mono)">a90plus/a90plus-data</code> GitHub repo</li>
+        <li>Hosted on GitHub Pages at <code style="font-family:var(--font-mono)">a90plus.github.io</code></li>
+        <li>Python 3.11 + jsonschema + pytest for data tooling</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2 style="font-size:1.1rem;font-weight:700;margin-bottom:.75rem">Contributing</h2>
+      <p style="color:var(--text-muted);font-size:.92rem;line-height:1.7">
+        Data contributions are welcome. To add or correct a tournament:
+      </p>
+      <ol style="color:var(--text-muted);font-size:.92rem;line-height:2;padding-left:1.25rem;margin-top:.5rem">
+        <li>Fork <code style="font-family:var(--font-mono)">a90plus/a90plus-data</code></li>
+        <li>Edit or create <code style="font-family:var(--font-mono)">tournaments/&lt;year&gt;.json</code></li>
+        <li>Run <code style="font-family:var(--font-mono)">python tools/validate.py tournaments/&lt;year&gt;.json</code></li>
+        <li>Open a Pull Request — the CI workflow validates automatically</li>
+      </ol>
+      <p style="color:var(--text-muted);font-size:.82rem;margin-top:.75rem">
+        Set <code style="font-family:var(--font-mono)">verified: true</code> only when all data has been
+        cross-checked against official FIFA match reports.
+      </p>
+    </div>
+  </div>
+  <script src="../assets/js/ui.js"></script>
+</body>
+</html>

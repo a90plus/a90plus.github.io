@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tournament — a90plus</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/styles.css">
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-logo">a<em style="color:var(--accent)">90</em><span style="color:var(--text)">+</span></div>
+    <ul class="nav-links">
+      <li><a href="../index.html">Home</a></li><li><a href="world-map.html">Map</a></li>
+      <li><a href="tournament.html">Tournament</a></li><li><a href="country.html">Country</a></li>
+      <li><a href="records.html">Records</a></li><li><a href="players.html">Players</a></li>
+      <li><a href="timeline.html">Timeline</a></li><li><a href="about.html">About</a></li>
+    </ul>
+    <div class="nav-spacer"></div>
+    <div class="nav-year-pill" id="nav-year">—</div>
+  </nav>
+  <div class="year-bar">
+    <span class="year-bar-label">Edition</span>
+    <div class="year-selector" id="year-selector"></div>
+  </div>
+  <div class="page">
+    <div id="content"><div class="state-box"><div class="spinner"></div>Loading…</div></div>
+  </div>
+
+  <script src="../assets/js/data-loader.js"></script>
+  <script src="../assets/js/ui.js"></script>
+  <script>
+    async function render(year) {
+      document.getElementById('nav-year').textContent = year;
+      setParams({ year });
+      const el = document.getElementById('content');
+      showLoading(el);
+      let t;
+      try { t = await DataLoader.getTournament(year); } catch(e) { showError(el, e.message); return; }
+
+      const winnerC = t.countries.find(c => c.iso3 === t.winner);
+      const finalM = t.matches.find(m => m.stage === 'Final');
+
+      // Awards table
+      const awardsHtml = t.awards.map(a => {
+        const pId = a.playerId;
+        let playerName = pId || '—';
+        if (pId) {
+          for (const c of t.countries) {
+            const p = c.squad.find(p => p.playerId === pId);
+            if (p) { playerName = p.commonName || p.fullName; break; }
+          }
+        }
+        const countryName = a.countryIso3 || '';
+        return `<tr>
+          <td>${a.award}</td>
+          <td>${playerName}${countryName ? ' (' + countryName + ')' : ''}</td>
+          <td class="num">${a.value != null ? a.value : '—'}</td>
+        </tr>`;
+      }).join('');
+
+      // Standings
+      const groupMap = {};
+      for (const c of t.countries) {
+        const g = c.groupId || 'X';
+        if (!groupMap[g]) groupMap[g] = [];
+        groupMap[g].push(c);
+      }
+      const groupsHtml = Object.entries(groupMap).sort().map(([g, teams]) => {
+        const sorted = [...teams].sort((a,b)=> b.record.points - a.record.points || b.record.goalDifference - a.record.goalDifference);
+        const rows = sorted.map(c => `<tr>
+          <td><a href="country.html?iso3=${c.iso3}&year=${year}">${flag(c.iso3)} ${c.name}</a></td>
+          <td class="num">${c.record.played}</td><td class="num">${c.record.won}</td>
+          <td class="num">${c.record.drawn}</td><td class="num">${c.record.lost}</td>
+          <td class="num">${c.record.goalsFor}</td><td class="num">${c.record.goalsAgainst}</td>
+          <td class="num">${c.record.goalDifference > 0 ? '+' : ''}${c.record.goalDifference}</td>
+          <td class="num"><strong>${c.record.points}</strong></td>
+        </tr>`).join('');
+        return `<div style="margin-bottom:2rem">
+          <p class="section-title">Group ${g}</p>
+          <div class="card table-wrap">
+            <table>
+              <tr><th>Team</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GF</th><th>GA</th><th>GD</th><th>Pts</th></tr>
+              ${rows}
+            </table>
+          </div>
+        </div>`;
+      }).join('');
+
+      // Knockout matches
+      const koStages = ['RoundOf16','QuarterFinal','SemiFinal','ThirdPlace','Final'];
+      const koHtml = koStages.map(stage => {
+        const ms = t.matches.filter(m => m.stage === stage);
+        if (!ms.length) return '';
+        const matchCards = ms.map(m => {
+          const hC = t.countries.find(c=>c.iso3===m.home.iso3);
+          const aC = t.countries.find(c=>c.iso3===m.away.iso3);
+          const hName = hC ? hC.name : m.home.iso3;
+          const aName = aC ? aC.name : m.away.iso3;
+          const ps = m.penaltyShootout;
+          const extra = m.afterExtraTime ? ' (AET)' : '';
+          const pen = ps ? ` (${ps.homeScore}–${ps.awayScore} on pens)` : '';
+          const hWin = ps ? ps.homeScore > ps.awayScore : m.home.score > m.away.score;
+          return `<div class="bracket-match" style="margin-bottom:.5rem">
+            <div class="bracket-team ${hWin?'winner':''}">
+              <span>${flag(m.home.iso3)} ${hName}</span>
+              <span class="bracket-score">${m.home.score}</span>
+            </div>
+            <div class="bracket-team ${!hWin?'winner':''}">
+              <span>${flag(m.away.iso3)} ${aName}</span>
+              <span class="bracket-score">${m.away.score}</span>
+            </div>
+            ${extra||pen ? `<div style="font-size:.72rem;color:var(--text-muted);padding:.25rem .75rem">${extra}${pen}</div>` : ''}
+          </div>`;
+        }).join('');
+        return `<div style="margin-bottom:1.5rem">
+          <p class="section-title">${stageName(stage)}</p>
+          <div class="grid-2">${matchCards}</div>
+        </div>`;
+      }).join('');
+
+      el.innerHTML = `
+        <div class="page-header">
+          <h1 class="page-title">${flag(t.winner)} ${year} FIFA World Cup</h1>
+          <p class="page-subtitle">${t.host.names.join(', ')} · ${t.dates.start} → ${t.dates.end} · Edition ${t.edition}</p>
+        </div>
+
+        <div class="grid-4" style="margin-bottom:2rem">
+          <div class="card" style="text-align:center">
+            <div style="font-size:2rem;margin-bottom:.25rem">${flag(t.winner)}</div>
+            <div style="font-weight:800">${winnerC ? winnerC.name : t.winner}</div>
+            <div style="font-size:.78rem;color:var(--text-muted)">🏆 Champion</div>
+          </div>
+          <div class="card" style="text-align:center">
+            <div style="font-size:2rem;margin-bottom:.25rem">${flag(t.runnerUp)}</div>
+            <div style="font-weight:800">${t.runnerUp}</div>
+            <div style="font-size:.78rem;color:var(--text-muted)">Runner-Up</div>
+          </div>
+          <div class="card" style="text-align:center">
+            <div style="font-size:2rem;margin-bottom:.25rem">${flag(t.third)}</div>
+            <div style="font-weight:800">${t.third}</div>
+            <div style="font-size:.78rem;color:var(--text-muted)">3rd Place</div>
+          </div>
+          <div class="card" style="text-align:center">
+            <div style="font-size:2rem;margin-bottom:.25rem">${flag(t.fourth)}</div>
+            <div style="font-weight:800">${t.fourth}</div>
+            <div style="font-size:.78rem;color:var(--text-muted)">4th Place</div>
+          </div>
+        </div>
+
+        <p class="section-title">Awards</p>
+        <div class="card table-wrap" style="margin-bottom:2rem">
+          <table><tr><th>Award</th><th>Recipient</th><th>Value</th></tr>${awardsHtml}</table>
+        </div>
+
+        ${koHtml || ''}
+        ${groupsHtml}
+      `;
+    }
+
+    (async () => {
+      const m = await DataLoader.getManifest();
+      const years = DataLoader.getAvailableYears();
+      const initYear = parseInt(getParam('year')) || DataLoader.getLatestYear();
+      buildYearSelector('year-selector', years, initYear, render);
+      await render(initYear);
+    })();
+  </script>
+</body>
+</html>

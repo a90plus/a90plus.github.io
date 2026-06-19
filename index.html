@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>a90plus — World Cup Statistics</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/styles.css">
+  <style>
+    .hero { padding: 4rem 1.5rem 3rem; text-align: center; position: relative; overflow: hidden; }
+    .hero::before {
+      content: ''; position: absolute; inset: 0;
+      background: radial-gradient(ellipse 70% 60% at 50% 30%, #f5a62310 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-eyebrow {
+      font-size: .78rem; font-weight: 700; letter-spacing: .15em;
+      text-transform: uppercase; color: var(--accent); margin-bottom: .75rem;
+    }
+    .hero-title {
+      font-size: clamp(2.5rem, 7vw, 5rem);
+      font-weight: 800; letter-spacing: -.05em; line-height: 1;
+      margin-bottom: 1rem;
+    }
+    .hero-title em { color: var(--accent); font-style: normal; }
+    .hero-sub {
+      font-size: 1.05rem; color: var(--text-muted);
+      max-width: 540px; margin: 0 auto 2.5rem;
+    }
+    .hero-cta {
+      display: inline-flex; gap: .75rem; flex-wrap: wrap; justify-content: center;
+    }
+    .btn {
+      display: inline-block; padding: .7rem 1.5rem;
+      border-radius: var(--radius); font-weight: 700; font-size: .9rem;
+      cursor: pointer; border: none; transition: all .15s; text-decoration: none;
+    }
+    .btn-primary { background: var(--accent); color: #000; }
+    .btn-primary:hover { background: var(--accent-dim); text-decoration: none; }
+    .btn-ghost {
+      background: none; border: 1px solid var(--border);
+      color: var(--text); padding: .7rem 1.5rem;
+    }
+    .btn-ghost:hover { border-color: var(--accent); color: var(--accent); text-decoration: none; }
+    .features {
+      display: grid; gap: 1rem;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      max-width: 1260px; margin: 0 auto; padding: 0 1.5rem 4rem;
+    }
+    .feature-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); padding: 1.5rem;
+      transition: border-color .15s;
+    }
+    .feature-card:hover { border-color: var(--accent); }
+    .feature-card a { display: block; color: inherit; }
+    .feature-card a:hover { text-decoration: none; }
+    .feature-icon { font-size: 1.75rem; margin-bottom: .75rem; }
+    .feature-title { font-weight: 700; font-size: 1rem; margin-bottom: .35rem; }
+    .feature-desc { font-size: .85rem; color: var(--text-muted); line-height: 1.5; }
+    .divider { border: none; border-top: 1px solid var(--border); margin: 0 1.5rem; }
+    #latest-section { max-width: 1260px; margin: 3rem auto; padding: 0 1.5rem; }
+    .tournament-hero {
+      display: grid; gap: 1rem;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    }
+    .th-box {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); padding: 1.25rem;
+      text-align: center;
+    }
+    .th-box-label { font-size: .72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .th-box-val { font-size: 1.4rem; font-weight: 800; }
+    .th-box-sub { font-size: .8rem; color: var(--text-muted); margin-top: .2rem; }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-logo">a<em style="color:var(--accent)">90</em><span>+</span></div>
+    <ul class="nav-links" id="nav-links">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="pages/world-map.html">Map</a></li>
+      <li><a href="pages/tournament.html">Tournament</a></li>
+      <li><a href="pages/country.html">Country</a></li>
+      <li><a href="pages/records.html">Records</a></li>
+      <li><a href="pages/players.html">Players</a></li>
+      <li><a href="pages/timeline.html">Timeline</a></li>
+      <li><a href="pages/about.html">About</a></li>
+    </ul>
+    <div class="nav-spacer"></div>
+    <div class="nav-year-pill" id="nav-year">—</div>
+  </nav>
+
+  <section class="hero">
+    <div class="hero-eyebrow">World Cup Statistics · 1930 → 2026</div>
+    <h1 class="hero-title">Every Cup.<br><em>Every Detail.</em></h1>
+    <p class="hero-sub">
+      Per-tournament statistics, event-level data, and interactive maps.
+      No all-time aggregates stored — every number is computed fresh from the source.
+    </p>
+    <div class="hero-cta">
+      <a class="btn btn-primary" href="pages/world-map.html">Explore the Map</a>
+      <a class="btn btn-ghost" href="pages/timeline.html">All Editions</a>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <section id="latest-section">
+    <p class="section-title" id="latest-label">Latest tournament</p>
+    <div class="tournament-hero" id="latest-grid">
+      <div class="th-box"><div class="state-box"><div class="spinner"></div></div></div>
+    </div>
+  </section>
+
+  <hr class="divider" style="margin-top:2rem">
+
+  <section class="features">
+    <div class="feature-card">
+      <a href="pages/world-map.html">
+        <div class="feature-icon">🗺</div>
+        <div class="feature-title">World Map</div>
+        <div class="feature-desc">Choropleth map driven by tournament year. Hover any country for its result, record, and top scorer.</div>
+      </a>
+    </div>
+    <div class="feature-card">
+      <a href="pages/tournament.html">
+        <div class="feature-icon">🏆</div>
+        <div class="feature-title">Tournament Explorer</div>
+        <div class="feature-desc">Pick an edition — browse the bracket, group standings, and tournament awards.</div>
+      </a>
+    </div>
+    <div class="feature-card">
+      <a href="pages/country.html">
+        <div class="feature-icon">🛡</div>
+        <div class="feature-title">Country Profile</div>
+        <div class="feature-desc">Full squad, match-by-match log, and every event for a nation in a chosen tournament.</div>
+      </a>
+    </div>
+    <div class="feature-card">
+      <a href="pages/records.html">
+        <div class="feature-icon">📊</div>
+        <div class="feature-title">Records</div>
+        <div class="feature-desc">Per-tournament leaderboards: top scorers, most cards, biggest wins — all scoped to one cup.</div>
+      </a>
+    </div>
+    <div class="feature-card">
+      <a href="pages/players.html">
+        <div class="feature-icon">👤</div>
+        <div class="feature-title">Players</div>
+        <div class="feature-desc">Search and filter every squad member. Stats computed live from event data.</div>
+      </a>
+    </div>
+    <div class="feature-card">
+      <a href="pages/head-to-head.html">
+        <div class="feature-icon">⚔</div>
+        <div class="feature-title">Head-to-Head</div>
+        <div class="feature-desc">Compare two countries in a selected year — records and any direct match.</div>
+      </a>
+    </div>
+    <div class="feature-card">
+      <a href="pages/continental.html">
+        <div class="feature-icon">🌍</div>
+        <div class="feature-title">Continental</div>
+        <div class="feature-desc">Filter the map by confederation. See how each continent performed across editions.</div>
+      </a>
+    </div>
+    <div class="feature-card">
+      <a href="pages/timeline.html">
+        <div class="feature-icon">📅</div>
+        <div class="feature-title">Timeline</div>
+        <div class="feature-desc">Scroll every World Cup from 1930 to the present in a single chronological view.</div>
+      </a>
+    </div>
+  </section>
+
+  <script src="assets/js/data-loader.js"></script>
+  <script src="assets/js/ui.js"></script>
+  <script>
+    (async () => {
+      const m = await DataLoader.getManifest();
+      const year = DataLoader.getLatestYear();
+      document.getElementById('nav-year').textContent = year;
+      document.getElementById('latest-label').textContent = `${year} World Cup`;
+
+      let t;
+      try { t = await DataLoader.getTournament(year); } catch(e) {
+        document.getElementById('latest-grid').innerHTML = `<div class="state-box error"><div class="icon">⚠</div>Could not load ${year} data.</div>`;
+        return;
+      }
+
+      const scorers = DataLoader.topScorers(t, 1);
+      const topScorer = scorers[0];
+      const winnerData = t.countries.find(c => c.iso3 === t.winner);
+      const finalsMatch = t.matches.find(m => m.stage === 'Final');
+
+      document.getElementById('latest-grid').innerHTML = `
+        <div class="th-box">
+          <div class="th-box-label">Winner</div>
+          <div class="th-box-val">${flag(t.winner)} ${winnerData ? winnerData.name : t.winner}</div>
+          <div class="th-box-sub">🏆 World Champions</div>
+        </div>
+        <div class="th-box">
+          <div class="th-box-label">Runner-Up</div>
+          <div class="th-box-val">${flag(t.runnerUp)} ${t.runnerUp}</div>
+          ${finalsMatch ? `<div class="th-box-sub">${finalsMatch.home.score}–${finalsMatch.away.score}${finalsMatch.penaltyShootout ? ' (P)' : ''}</div>` : ''}
+        </div>
+        <div class="th-box">
+          <div class="th-box-label">Host</div>
+          <div class="th-box-val">${t.host.names[0]}</div>
+          <div class="th-box-sub">${t.dates.start.slice(0,4)}</div>
+        </div>
+        <div class="th-box">
+          <div class="th-box-label">Top Scorer</div>
+          <div class="th-box-val">${topScorer ? topScorer.name : '—'}</div>
+          <div class="th-box-sub">${topScorer ? `${topScorer.goals} goal${topScorer.goals!==1?'s':''}` : ''}</div>
+        </div>
+        <div class="th-box">
+          <div class="th-box-label">Teams</div>
+          <div class="th-box-val">${t.format.teamsCount}</div>
+          <div class="th-box-sub">${t.countries.length} in dataset</div>
+        </div>
+        <div class="th-box">
+          <div class="th-box-label">Matches</div>
+          <div class="th-box-val">${t.matches.length}</div>
+          <div class="th-box-sub">of ${t.format.teamsCount===32?64:t.format.teamsCount===16?32:''} total</div>
+        </div>
+      `;
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Timeline — a90plus</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/styles.css">
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-logo">a<em style="color:var(--accent)">90</em><span style="color:var(--text)">+</span></div>
+    <ul class="nav-links">
+      <li><a href="../index.html">Home</a></li><li><a href="world-map.html">Map</a></li>
+      <li><a href="tournament.html">Tournament</a></li><li><a href="country.html">Country</a></li>
+      <li><a href="records.html">Records</a></li><li><a href="players.html">Players</a></li>
+      <li><a href="timeline.html">Timeline</a></li><li><a href="about.html">About</a></li>
+    </ul>
+    <div class="nav-spacer"></div>
+    <div class="nav-year-pill" id="nav-year">All</div>
+  </nav>
+  <div class="page">
+    <div class="page-header">
+      <h1 class="page-title">World Cup Timeline</h1>
+      <p class="page-subtitle">Every edition from 1930 to present. Click any card to explore.</p>
+    </div>
+    <div id="content"><div class="state-box"><div class="spinner"></div>Loading…</div></div>
+  </div>
+
+  <script src="../assets/js/data-loader.js"></script>
+  <script src="../assets/js/ui.js"></script>
+  <script>
+    (async () => {
+      const el = document.getElementById('content');
+      const m = await DataLoader.getManifest();
+      const years = DataLoader.getAvailableYears();
+
+      // Load all available tournaments in parallel
+      const tournaments = {};
+      await Promise.all(years.map(async y => {
+        try { tournaments[y] = await DataLoader.getTournament(y); } catch {}
+      }));
+
+      const items = years.map(y => {
+        const t = tournaments[y];
+        if (!t) return `<div class="timeline-item">
+          <div class="timeline-year">${y}</div>
+          <div class="timeline-detail">Data not yet available. <a href="tournament.html?year=${y}">Explore →</a></div>
+        </div>`;
+
+        const winnerC = t.countries.find(c=>c.iso3===t.winner);
+        const finalM = t.matches.find(m=>m.stage==='Final');
+        const score = finalM ? `${finalM.home.score}–${finalM.away.score}${finalM.penaltyShootout?' (P)':''}` : '';
+        return `<div class="timeline-item">
+          <div class="timeline-year"><a href="tournament.html?year=${y}">${y}</a></div>
+          <div style="display:flex;gap:.75rem;flex-wrap:wrap;margin-top:.25rem">
+            <div class="card" style="flex:1;min-width:260px;padding:1rem">
+              <div style="display:flex;justify-content:space-between;align-items:start;gap:1rem">
+                <div>
+                  <div style="font-size:1.6rem">${flag(t.winner)}</div>
+                  <div style="font-weight:800">${winnerC?winnerC.name:t.winner}</div>
+                  <div style="font-size:.8rem;color:var(--text-muted)">🏆 Champion${score?' · Final: '+score:''}</div>
+                </div>
+                <div style="text-align:right">
+                  <div style="font-size:.78rem;color:var(--text-muted)">${t.host.names[0]}</div>
+                  <div style="font-size:.78rem;color:var(--text-muted)">${t.format.teamsCount} teams</div>
+                  <a href="tournament.html?year=${y}" style="font-size:.78rem">Details →</a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>`;
+      }).join('');
+
+      el.innerHTML = `<div class="timeline">${items}</div>`;
+    })();
+  </script>
+</body>
+</html>

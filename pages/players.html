@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Players — a90plus</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/styles.css">
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-logo">a<em style="color:var(--accent)">90</em><span style="color:var(--text)">+</span></div>
+    <ul class="nav-links">
+      <li><a href="../index.html">Home</a></li><li><a href="world-map.html">Map</a></li>
+      <li><a href="tournament.html">Tournament</a></li><li><a href="country.html">Country</a></li>
+      <li><a href="records.html">Records</a></li><li><a href="players.html">Players</a></li>
+      <li><a href="timeline.html">Timeline</a></li><li><a href="about.html">About</a></li>
+    </ul>
+    <div class="nav-spacer"></div>
+    <div class="nav-year-pill" id="nav-year">—</div>
+  </nav>
+  <div class="year-bar">
+    <span class="year-bar-label">Edition</span>
+    <div class="year-selector" id="year-selector"></div>
+  </div>
+  <div class="page">
+    <div class="page-header">
+      <h1 class="page-title" id="page-title">Players</h1>
+      <p class="page-subtitle">All squad members. Stats computed live from event data.</p>
+    </div>
+    <div style="display:flex;gap:.75rem;flex-wrap:wrap;margin-bottom:1rem;align-items:center">
+      <div class="search-wrap" style="flex:1;min-width:200px;margin-bottom:0">
+        <span class="search-icon">⌕</span>
+        <input class="search-input" id="search" type="text" placeholder="Search player name…">
+      </div>
+      <select id="pos-filter" style="background:var(--bg-card);border:1px solid var(--border);color:var(--text);border-radius:var(--radius);padding:.6rem .75rem;font-family:inherit;font-size:.88rem">
+        <option value="">All positions</option>
+        <option>GK</option><option>DF</option><option>MF</option><option>FW</option>
+      </select>
+      <select id="country-filter" style="background:var(--bg-card);border:1px solid var(--border);color:var(--text);border-radius:var(--radius);padding:.6rem .75rem;font-family:inherit;font-size:.88rem">
+        <option value="">All countries</option>
+      </select>
+    </div>
+    <div id="content"><div class="state-box"><div class="spinner"></div></div></div>
+  </div>
+
+  <script src="../assets/js/data-loader.js"></script>
+  <script src="../assets/js/ui.js"></script>
+  <script>
+    let allPlayers = [], currentT = null;
+
+    function applyFilters() {
+      const q = document.getElementById('search').value.toLowerCase();
+      const pos = document.getElementById('pos-filter').value;
+      const country = document.getElementById('country-filter').value;
+      const filtered = allPlayers.filter(({p, iso3}) => {
+        const name = (p.commonName||p.fullName).toLowerCase();
+        return (!q || name.includes(q)) && (!pos || p.position===pos) && (!country || iso3===country);
+      });
+      renderTable(filtered);
+    }
+
+    function renderTable(players) {
+      const el = document.getElementById('content');
+      if (!players.length) { showEmpty(el); return; }
+      const rows = players.map(({p, iso3, countryName, goals, assists, yellow, red}) => `<tr>
+        <td>${flag(iso3)} <a href="country.html?iso3=${iso3}&year=${currentT.year}">${countryName}</a></td>
+        <td><span class="badge badge-muted" style="font-size:.7rem">${p.position}</span></td>
+        <td class="num">${p.shirtNumber}</td>
+        <td><strong>${p.commonName||p.fullName}</strong>
+          ${p.captain ? ' <span class="badge badge-gold" style="font-size:.65rem">C</span>' : ''}
+        </td>
+        <td style="font-size:.8rem">${p.birthDate||'—'}</td>
+        <td style="font-size:.8rem">${p.club.name}</td>
+        <td class="num" style="color:var(--accent);font-weight:700">${goals}</td>
+        <td class="num">${assists}</td>
+        <td class="num">${yellow ? '🟨'.repeat(Math.min(yellow,3)) : '—'}</td>
+        <td class="num">${red ? '🟥' : '—'}</td>
+      </tr>`).join('');
+      el.innerHTML = `<div class="card table-wrap">
+        <table>
+          <tr><th>Country</th><th>Pos</th><th>#</th><th>Name</th><th>DOB</th><th>Club</th><th>⚽</th><th>🅰</th><th>🟨</th><th>🟥</th></tr>
+          ${rows}
+        </table>
+      </div>`;
+    }
+
+    async function render(year) {
+      document.getElementById('nav-year').textContent = year;
+      document.getElementById('page-title').textContent = `${year} Players`;
+      setParams({ year });
+      const el = document.getElementById('content');
+      showLoading(el);
+      let t;
+      try { t = await DataLoader.getTournament(year); } catch(e) { showError(el,e.message); return; }
+      currentT = t;
+
+      // Build derived stats per player
+      const goals = {}, assists = {}, yellow = {}, red = {};
+      for (const m of t.matches) for (const e of m.events) {
+        if (['goal','penalty-goal'].includes(e.type)) goals[e.playerId]=(goals[e.playerId]||0)+1;
+        if (e.type==='assist') assists[e.playerId]=(assists[e.playerId]||0)+1;
+        if (['yellow-card','second-yellow'].includes(e.type)) yellow[e.playerId]=(yellow[e.playerId]||0)+1;
+        if (['red-card','second-yellow'].includes(e.type)) red[e.playerId]=(red[e.playerId]||0)+1;
+      }
+
+      allPlayers = [];
+      const cf = document.getElementById('country-filter');
+      cf.innerHTML = '<option value="">All countries</option>';
+      for (const c of t.countries) {
+        cf.innerHTML += `<option value="${c.iso3}">${c.name}</option>`;
+        for (const p of c.squad) {
+          allPlayers.push({
+            p, iso3: c.iso3, countryName: c.name,
+            goals: goals[p.playerId]||0,
+            assists: assists[p.playerId]||0,
+            yellow: yellow[p.playerId]||0,
+            red: red[p.playerId]||0,
+          });
+        }
+      }
+
+      applyFilters();
+    }
+
+    document.getElementById('search').addEventListener('input', applyFilters);
+    document.getElementById('pos-filter').addEventListener('change', applyFilters);
+    document.getElementById('country-filter').addEventListener('change', applyFilters);
+
+    (async () => {
+      await DataLoader.getManifest();
+      const years = DataLoader.getAvailableYears();
+      const initYear = parseInt(getParam('year')) || DataLoader.getLatestYear();
+      buildYearSelector('year-selector', years, initYear, render);
+      await render(initYear);
+    })();
+  </script>
+</body>
+</html>

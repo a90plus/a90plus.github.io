@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Country Profile — a90plus</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/styles.css">
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-logo">a<em style="color:var(--accent)">90</em><span style="color:var(--text)">+</span></div>
+    <ul class="nav-links">
+      <li><a href="../index.html">Home</a></li><li><a href="world-map.html">Map</a></li>
+      <li><a href="tournament.html">Tournament</a></li><li><a href="country.html">Country</a></li>
+      <li><a href="records.html">Records</a></li><li><a href="players.html">Players</a></li>
+      <li><a href="timeline.html">Timeline</a></li><li><a href="about.html">About</a></li>
+    </ul>
+    <div class="nav-spacer"></div>
+    <div class="nav-year-pill" id="nav-year">—</div>
+  </nav>
+  <div class="year-bar">
+    <span class="year-bar-label">Edition</span>
+    <div class="year-selector" id="year-selector"></div>
+  </div>
+  <div class="page">
+    <div id="content"><div class="state-box"><div class="spinner"></div>Loading…</div></div>
+  </div>
+
+  <script src="../assets/js/data-loader.js"></script>
+  <script src="../assets/js/ui.js"></script>
+  <script>
+    let currentIso3 = getParam('iso3');
+
+    async function render(year) {
+      document.getElementById('nav-year').textContent = year;
+      setParams({ year, iso3: currentIso3 });
+      const el = document.getElementById('content');
+      showLoading(el);
+      let t;
+      try { t = await DataLoader.getTournament(year); } catch(e) { showError(el, e.message); return; }
+
+      const iso3 = currentIso3 || (t.countries[0] && t.countries[0].iso3);
+      if (!iso3) { showEmpty(el, 'No country selected.'); return; }
+
+      const c = t.countries.find(x => x.iso3 === iso3);
+      if (!c) { showEmpty(el, `No data for ${iso3} in ${year}.`); return; }
+
+      // Country selector
+      const csHtml = `<div style="margin-bottom:1.5rem">
+        <label style="color:var(--text-muted);font-size:.82rem;margin-right:.5rem">Country:</label>
+        <select id="country-select" style="background:var(--bg-card);border:1px solid var(--border);color:var(--text);border-radius:var(--radius);padding:.3rem .75rem;font-family:inherit;font-size:.88rem">
+          ${t.countries.map(x=>`<option value="${x.iso3}" ${x.iso3===iso3?'selected':''}>${x.name}</option>`).join('')}
+        </select>
+      </div>`;
+
+      // Build player stats from events
+      const pGoals = {}, pAssists = {}, pYellow = {}, pRed = {};
+      const myMatches = t.matches.filter(m => m.home.iso3===iso3 || m.away.iso3===iso3);
+      for (const m of myMatches) {
+        for (const e of m.events) {
+          if (c.squad.find(p=>p.playerId===e.playerId)) {
+            if (['goal','penalty-goal'].includes(e.type)) pGoals[e.playerId] = (pGoals[e.playerId]||0)+1;
+            if (e.type==='assist') pAssists[e.playerId] = (pAssists[e.playerId]||0)+1;
+            if (['yellow-card','second-yellow'].includes(e.type)) pYellow[e.playerId] = (pYellow[e.playerId]||0)+1;
+            if (['red-card','second-yellow'].includes(e.type)) pRed[e.playerId] = (pRed[e.playerId]||0)+1;
+          }
+        }
+      }
+
+      // Squad table
+      const squadRows = c.squad.map(p => `<tr>
+        <td class="num">${p.shirtNumber}</td>
+        <td><span class="badge badge-muted" style="font-size:.7rem">${p.position}</span></td>
+        <td><strong>${p.commonName || p.fullName}</strong><br><span style="color:var(--text-muted);font-size:.78rem">${p.fullName}</span></td>
+        <td>${p.birthDate} <span style="color:var(--text-muted);font-size:.78rem">(age ${p.ageAtTournament||'?'})</span></td>
+        <td style="font-size:.82rem">${p.club.name}, ${p.club.country}</td>
+        <td class="num">${p.foot||'—'}</td>
+        <td class="num" style="color:var(--accent)">${pGoals[p.playerId]||0}</td>
+        <td class="num">${pAssists[p.playerId]||0}</td>
+        <td class="num">${pYellow[p.playerId]?'🟨'.repeat(pYellow[p.playerId]):'—'}</td>
+        ${p.captain ? '<td><span class="badge badge-gold">C</span></td>' : '<td></td>'}
+      </tr>`).join('');
+
+      // Match log
+      const matchLog = myMatches.map(m => {
+        const isHome = m.home.iso3 === iso3;
+        const opp = isHome ? m.away.iso3 : m.home.iso3;
+        const oppC = t.countries.find(x=>x.iso3===opp);
+        const myScore = isHome ? m.home.score : m.away.score;
+        const oppScore = isHome ? m.away.score : m.home.score;
+        const result = myScore > oppScore ? 'W' : myScore < oppScore ? 'L' : 'D';
+        const badge = result==='W'?'badge-green':result==='L'?'badge-red':'badge-muted';
+        const goals = m.events.filter(e=>e.team===iso3 && ['goal','own-goal','penalty-goal'].includes(e.type));
+        const goalDetail = goals.map(e=>{
+          const p = c.squad.find(x=>x.playerId===e.playerId);
+          return `${p?p.commonName||p.fullName:'?'} ${e.minute}'${e.stoppageMinute?'+'+e.stoppageMinute:''}${e.type==='own-goal'?' (OG)':e.type==='penalty-goal'?' (P)':''}`;
+        }).join(', ');
+        return `<tr>
+          <td><span class="badge ${badge}" style="width:1.5rem;text-align:center">${result}</span></td>
+          <td><span class="badge badge-muted" style="font-size:.72rem">${stageName(m.stage)}</span></td>
+          <td>${flag(opp)} <a href="country.html?iso3=${opp}&year=${t.year}">${oppC?oppC.name:opp}</a></td>
+          <td class="num"><strong>${myScore}–${oppScore}</strong></td>
+          <td style="font-size:.8rem;color:var(--text-muted)">${goalDetail}</td>
+          <td style="font-size:.78rem;color:var(--text-muted)">${m.venue.city}</td>
+        </tr>`;
+      }).join('');
+
+      el.innerHTML = `
+        ${csHtml}
+        <div class="page-header">
+          <div class="profile-flag">${flag(c.iso3)}</div>
+          <h1 class="page-title">${c.name}</h1>
+          <p class="profile-meta">${c.confederation} · ${year} World Cup · Group ${c.groupId||'—'} · Finished: ${stageName(c.finishStage)}</p>
+        </div>
+        <div class="stat-grid" style="margin-bottom:2rem">
+          <div class="stat-box"><div class="stat-box-val">${c.record.played}</div><div class="stat-box-label">Played</div></div>
+          <div class="stat-box"><div class="stat-box-val">${c.record.won}</div><div class="stat-box-label">Won</div></div>
+          <div class="stat-box"><div class="stat-box-val">${c.record.drawn}</div><div class="stat-box-label">Drawn</div></div>
+          <div class="stat-box"><div class="stat-box-val">${c.record.lost}</div><div class="stat-box-label">Lost</div></div>
+          <div class="stat-box"><div class="stat-box-val">${c.record.goalsFor}</div><div class="stat-box-label">Goals For</div></div>
+          <div class="stat-box"><div class="stat-box-val">${c.record.goalsAgainst}</div><div class="stat-box-label">Goals Against</div></div>
+          <div class="stat-box"><div class="stat-box-val">${c.record.points}</div><div class="stat-box-label">Points</div></div>
+          <div class="stat-box"><div class="stat-box-val">${c.finalStanding||'—'}</div><div class="stat-box-label">Final Rank</div></div>
+        </div>
+        <p style="color:var(--text-muted);font-size:.82rem;margin-bottom:2rem">
+          Coach: <strong>${c.coach.name}</strong> (${c.coach.nationality})
+        </p>
+
+        ${matchLog ? `<p class="section-title">Match Log</p>
+        <div class="card table-wrap" style="margin-bottom:2rem">
+          <table><tr><th></th><th>Stage</th><th>Opponent</th><th>Score</th><th>Goals</th><th>Venue</th></tr>${matchLog}</table>
+        </div>` : ''}
+
+        <p class="section-title">Squad (${c.squad.length} players)</p>
+        <div class="card table-wrap">
+          <table>
+            <tr><th>#</th><th>Pos</th><th>Name</th><th>DOB</th><th>Club</th><th>Foot</th><th>⚽</th><th>🅰</th><th>Cards</th><th></th></tr>
+            ${squadRows}
+          </table>
+        </div>
+      `;
+
+      document.getElementById('country-select').addEventListener('change', e => {
+        currentIso3 = e.target.value;
+        render(year);
+      });
+    }
+
+    (async () => {
+      const m = await DataLoader.getManifest();
+      const years = DataLoader.getAvailableYears();
+      const initYear = parseInt(getParam('year')) || DataLoader.getLatestYear();
+      buildYearSelector('year-selector', years, initYear, render);
+      await render(initYear);
+    })();
+  </script>
+</body>
+</html>

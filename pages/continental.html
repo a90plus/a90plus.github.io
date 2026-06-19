@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Continental — a90plus</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/styles.css">
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-logo">a<em style="color:var(--accent)">90</em><span style="color:var(--text)">+</span></div>
+    <ul class="nav-links">
+      <li><a href="../index.html">Home</a></li><li><a href="world-map.html">Map</a></li>
+      <li><a href="tournament.html">Tournament</a></li><li><a href="country.html">Country</a></li>
+      <li><a href="records.html">Records</a></li><li><a href="players.html">Players</a></li>
+      <li><a href="timeline.html">Timeline</a></li><li><a href="about.html">About</a></li>
+    </ul>
+    <div class="nav-spacer"></div>
+    <div class="nav-year-pill" id="nav-year">—</div>
+  </nav>
+  <div class="year-bar">
+    <span class="year-bar-label">Edition</span>
+    <div class="year-selector" id="year-selector"></div>
+  </div>
+  <div class="page">
+    <div class="page-header">
+      <h1 class="page-title" id="page-title">Continental View</h1>
+      <p class="page-subtitle">Filter by confederation to see how each continent performed.</p>
+    </div>
+    <div style="margin-bottom:1.5rem;display:flex;gap:.5rem;flex-wrap:wrap" id="conf-btns"></div>
+    <div id="content"><div class="state-box"><div class="spinner"></div></div></div>
+  </div>
+
+  <script src="../assets/js/data-loader.js"></script>
+  <script src="../assets/js/ui.js"></script>
+  <script>
+    const CONFS = ['UEFA','CONMEBOL','CAF','AFC','CONCACAF','OFC'];
+    let currentT = null, currentConf = null;
+
+    function renderConf() {
+      if (!currentT) return;
+      const el = document.getElementById('content');
+      const countries = currentConf
+        ? currentT.countries.filter(c=>c.confederation===currentConf)
+        : currentT.countries;
+
+      if (!countries.length) { showEmpty(el, `No ${currentConf||''} teams in this tournament.`); return; }
+
+      const sorted = [...countries].sort((a,b) => (a.finalStanding||99)-(b.finalStanding||99));
+      const rows = sorted.map(c => `<tr>
+        <td class="num">${c.finalStanding||'—'}</td>
+        <td>${flag(c.iso3)} <a href="country.html?iso3=${c.iso3}&year=${currentT.year}">${c.name}</a></td>
+        <td><span class="badge badge-muted" style="font-size:.72rem">${c.confederation}</span></td>
+        <td>${stageName(c.finishStage)}</td>
+        <td class="num">${c.record.played}</td>
+        <td class="num">${c.record.won}</td>
+        <td class="num">${c.record.drawn}</td>
+        <td class="num">${c.record.lost}</td>
+        <td class="num">${c.record.goalsFor}</td>
+        <td class="num">${c.record.goalsAgainst}</td>
+        <td class="num"><strong>${c.record.points}</strong></td>
+      </tr>`).join('');
+
+      el.innerHTML = `<div class="card table-wrap">
+        <table>
+          <tr><th>Rank</th><th>Country</th><th>Conf.</th><th>Stage</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GF</th><th>GA</th><th>Pts</th></tr>
+          ${rows}
+        </table>
+      </div>`;
+    }
+
+    async function render(year) {
+      document.getElementById('nav-year').textContent = year;
+      document.getElementById('page-title').textContent = `${year} Continental View`;
+      setParams({ year });
+      let t;
+      try { t = await DataLoader.getTournament(year); } catch(e) { showError(document.getElementById('content'),e.message); return; }
+      currentT = t;
+
+      // Confederation buttons
+      const el = document.getElementById('conf-btns');
+      el.innerHTML = `<button class="year-btn${!currentConf?' active':''}" data-conf="">All</button>` +
+        CONFS.map(c => `<button class="year-btn${currentConf===c?' active':''}" data-conf="${c}">${c}</button>`).join('');
+      el.querySelectorAll('.year-btn').forEach(btn => btn.addEventListener('click', () => {
+        el.querySelectorAll('.year-btn').forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active');
+        currentConf = btn.dataset.conf || null;
+        renderConf();
+      }));
+
+      renderConf();
+    }
+
+    (async () => {
+      await DataLoader.getManifest();
+      const years = DataLoader.getAvailableYears();
+      const initYear = parseInt(getParam('year')) || DataLoader.getLatestYear();
+      buildYearSelector('year-selector', years, initYear, render);
+      await render(initYear);
+    })();
+  </script>
+</body>
+</html>

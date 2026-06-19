@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Records — a90plus</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/styles.css">
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-logo">a<em style="color:var(--accent)">90</em><span style="color:var(--text)">+</span></div>
+    <ul class="nav-links">
+      <li><a href="../index.html">Home</a></li><li><a href="world-map.html">Map</a></li>
+      <li><a href="tournament.html">Tournament</a></li><li><a href="country.html">Country</a></li>
+      <li><a href="records.html">Records</a></li><li><a href="players.html">Players</a></li>
+      <li><a href="timeline.html">Timeline</a></li><li><a href="about.html">About</a></li>
+    </ul>
+    <div class="nav-spacer"></div>
+    <div class="nav-year-pill" id="nav-year">—</div>
+  </nav>
+  <div class="year-bar">
+    <span class="year-bar-label">Edition</span>
+    <div class="year-selector" id="year-selector"></div>
+  </div>
+  <div class="page">
+    <div class="page-header">
+      <h1 class="page-title" id="page-title">Tournament Records</h1>
+      <p class="page-subtitle">All leaderboards are scoped to the selected tournament only — not all-time.</p>
+    </div>
+    <div id="content"><div class="state-box"><div class="spinner"></div></div></div>
+  </div>
+
+  <script src="../assets/js/data-loader.js"></script>
+  <script src="../assets/js/ui.js"></script>
+  <script>
+    async function render(year) {
+      document.getElementById('nav-year').textContent = year;
+      document.getElementById('page-title').textContent = `${year} Records`;
+      setParams({ year });
+      const el = document.getElementById('content');
+      showLoading(el);
+      let t;
+      try { t = await DataLoader.getTournament(year); } catch(e) { showError(el,e.message); return; }
+
+      // Top scorers (from events)
+      const scorers = DataLoader.topScorers(t, 10);
+      const scorerRows = scorers.map((s,i) => `<tr>
+        <td class="num">${i+1}</td>
+        <td>${flag(s.iso3)} ${s.name}</td>
+        <td><a href="country.html?iso3=${s.iso3}&year=${year}">${s.iso3}</a></td>
+        <td class="num"><strong style="color:var(--accent)">${s.goals}</strong></td>
+      </tr>`).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--text-muted)">No goal data yet</td></tr>';
+
+      // Assist leaders
+      const assists = {};
+      const names = {}, countries = {};
+      for (const c of t.countries) for (const p of c.squad) {
+        names[p.playerId] = p.commonName||p.fullName;
+        countries[p.playerId] = c.iso3;
+      }
+      for (const m of t.matches) for (const e of m.events) {
+        if (e.type==='assist') assists[e.playerId] = (assists[e.playerId]||0)+1;
+      }
+      const topAssists = Object.entries(assists).sort((a,b)=>b[1]-a[1]).slice(0,10);
+      const assistRows = topAssists.map(([pid,a],i) => `<tr>
+        <td class="num">${i+1}</td>
+        <td>${names[pid]||pid}</td>
+        <td><a href="country.html?iso3=${countries[pid]||''}&year=${year}">${countries[pid]||'—'}</a></td>
+        <td class="num"><strong>${a}</strong></td>
+      </tr>`).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--text-muted)">No assist data yet</td></tr>';
+
+      // Biggest wins
+      const biggest = [...t.matches]
+        .filter(m=>!m.penaltyShootout)
+        .map(m=>({m, diff: Math.abs(m.home.score - m.away.score)}))
+        .sort((a,b)=>b.diff-a.diff).slice(0,5);
+      const biggestRows = biggest.map(({m, diff}) => {
+        const hC = t.countries.find(c=>c.iso3===m.home.iso3);
+        const aC = t.countries.find(c=>c.iso3===m.away.iso3);
+        return `<tr>
+          <td>${flag(m.home.iso3)} ${hC?hC.name:m.home.iso3}</td>
+          <td class="num"><strong>${m.home.score}–${m.away.score}</strong></td>
+          <td>${flag(m.away.iso3)} ${aC?aC.name:m.away.iso3}</td>
+          <td><span class="badge badge-muted" style="font-size:.72rem">${stageName(m.stage)}</span></td>
+          <td class="num">${diff === 1 ? '' : `+${diff}`}</td>
+        </tr>`;
+      }).join('') || '<tr><td colspan="5" style="text-align:center;color:var(--text-muted)">No match data yet</td></tr>';
+
+      // Cards
+      const yCards = {}, rCards = {};
+      for (const m of t.matches) for (const e of m.events) {
+        if (['yellow-card','second-yellow'].includes(e.type)) yCards[e.playerId]=(yCards[e.playerId]||0)+1;
+        if (['red-card','second-yellow'].includes(e.type)) rCards[e.playerId]=(rCards[e.playerId]||0)+1;
+      }
+      const topCards = Object.entries(yCards).sort((a,b)=>b[1]-a[1]).slice(0,10);
+      const cardRows = topCards.map(([pid,y],i) => `<tr>
+        <td class="num">${i+1}</td>
+        <td>${names[pid]||pid}</td>
+        <td>${countries[pid]||'—'}</td>
+        <td class="num">🟨 ${y}</td>
+        <td class="num">${rCards[pid]?'🟥 '+rCards[pid]:'—'}</td>
+      </tr>`).join('') || '<tr><td colspan="5" style="text-align:center;color:var(--text-muted)">No card data yet</td></tr>';
+
+      el.innerHTML = `
+        <div class="grid-2">
+          <div>
+            <p class="section-title">Top Scorers</p>
+            <div class="card table-wrap">
+              <table><tr><th>#</th><th>Player</th><th>Country</th><th>Goals</th></tr>${scorerRows}</table>
+            </div>
+          </div>
+          <div>
+            <p class="section-title">Top Assist Leaders</p>
+            <div class="card table-wrap">
+              <table><tr><th>#</th><th>Player</th><th>Country</th><th>Assists</th></tr>${assistRows}</table>
+            </div>
+          </div>
+        </div>
+        <div class="grid-2" style="margin-top:1.5rem">
+          <div>
+            <p class="section-title">Biggest Wins</p>
+            <div class="card table-wrap">
+              <table><tr><th>Home</th><th>Score</th><th>Away</th><th>Stage</th><th>Margin</th></tr>${biggestRows}</table>
+            </div>
+          </div>
+          <div>
+            <p class="section-title">Most Booked Players</p>
+            <div class="card table-wrap">
+              <table><tr><th>#</th><th>Player</th><th>Country</th><th>Yellow</th><th>Red</th></tr>${cardRows}</table>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    (async () => {
+      const m = await DataLoader.getManifest();
+      const years = DataLoader.getAvailableYears();
+      const initYear = parseInt(getParam('year')) || DataLoader.getLatestYear();
+      buildYearSelector('year-selector', years, initYear, render);
+      await render(initYear);
+    })();
+  </script>
+</body>
+</html>

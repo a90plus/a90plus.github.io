@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Head-to-Head — a90plus</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/styles.css">
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-logo">a<em style="color:var(--accent)">90</em><span style="color:var(--text)">+</span></div>
+    <ul class="nav-links">
+      <li><a href="../index.html">Home</a></li><li><a href="world-map.html">Map</a></li>
+      <li><a href="tournament.html">Tournament</a></li><li><a href="country.html">Country</a></li>
+      <li><a href="records.html">Records</a></li><li><a href="players.html">Players</a></li>
+      <li><a href="timeline.html">Timeline</a></li><li><a href="about.html">About</a></li>
+    </ul>
+    <div class="nav-spacer"></div>
+    <div class="nav-year-pill" id="nav-year">—</div>
+  </nav>
+  <div class="year-bar">
+    <span class="year-bar-label">Edition</span>
+    <div class="year-selector" id="year-selector"></div>
+  </div>
+  <div class="page">
+    <div class="page-header">
+      <h1 class="page-title">Head-to-Head</h1>
+      <p class="page-subtitle">Compare two countries in a selected World Cup.</p>
+    </div>
+    <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:1.5rem;align-items:center">
+      <select id="team-a" style="background:var(--bg-card);border:1px solid var(--border);color:var(--text);border-radius:var(--radius);padding:.6rem 1rem;font-family:inherit;font-size:.9rem;flex:1;min-width:160px"></select>
+      <span style="color:var(--text-muted);font-weight:700">vs</span>
+      <select id="team-b" style="background:var(--bg-card);border:1px solid var(--border);color:var(--text);border-radius:var(--radius);padding:.6rem 1rem;font-family:inherit;font-size:.9rem;flex:1;min-width:160px"></select>
+      <button id="compare-btn" class="btn btn-primary">Compare</button>
+    </div>
+    <div id="content"></div>
+  </div>
+
+  <script src="../assets/js/data-loader.js"></script>
+  <script src="../assets/js/ui.js"></script>
+  <script>
+    let currentT = null;
+
+    async function loadYear(year) {
+      document.getElementById('nav-year').textContent = year;
+      setParams({ year });
+      let t;
+      try { t = await DataLoader.getTournament(year); } catch(e) { return; }
+      currentT = t;
+
+      const sel = (id) => {
+        const s = document.getElementById(id);
+        s.innerHTML = t.countries.map(c=>`<option value="${c.iso3}">${flag(c.iso3)} ${c.name}</option>`).join('');
+        return s;
+      };
+      sel('team-a');
+      const sb = sel('team-b');
+      if (t.countries.length > 1) sb.selectedIndex = 1;
+    }
+
+    function compare() {
+      if (!currentT) return;
+      const isoA = document.getElementById('team-a').value;
+      const isoB = document.getElementById('team-b').value;
+      const el = document.getElementById('content');
+
+      if (isoA === isoB) { el.innerHTML = '<div class="state-box">Select two different countries.</div>'; return; }
+
+      const cA = currentT.countries.find(c=>c.iso3===isoA);
+      const cB = currentT.countries.find(c=>c.iso3===isoB);
+      if (!cA || !cB) { showEmpty(el); return; }
+
+      // Direct matches
+      const direct = currentT.matches.filter(m =>
+        (m.home.iso3===isoA && m.away.iso3===isoB) ||
+        (m.home.iso3===isoB && m.away.iso3===isoA)
+      );
+
+      const directHtml = direct.length ? direct.map(m => {
+        const isAHome = m.home.iso3 === isoA;
+        const aScore = isAHome ? m.home.score : m.away.score;
+        const bScore = isAHome ? m.away.score : m.home.score;
+        const ps = m.penaltyShootout;
+        return `<div class="card" style="text-align:center;margin-bottom:.75rem">
+          <div style="font-size:.78rem;color:var(--text-muted);margin-bottom:.5rem">${stageName(m.stage)} · ${m.datetime.slice(0,10)} · ${m.venue.city}</div>
+          <div style="font-size:2rem;font-weight:800;letter-spacing:-.04em">
+            ${flag(isoA)} ${aScore} – ${bScore} ${flag(isoB)}
+          </div>
+          ${m.afterExtraTime ? '<div style="font-size:.8rem;color:var(--text-muted)">After Extra Time</div>' : ''}
+          ${ps ? `<div style="font-size:.8rem;color:var(--text-muted)">(${ps.homeScore}–${ps.awayScore} on penalties)</div>` : ''}
+        </div>`;
+      }).join('') : `<div class="state-box">These teams did not meet in the ${currentT.year} World Cup.</div>`;
+
+      const statRow = (label, a, b) => {
+        const aW = a > b, bW = b > a;
+        return `<tr>
+          <td style="text-align:right;${aW?'color:var(--accent);font-weight:700':''}">${a}</td>
+          <td style="text-align:center;color:var(--text-muted);font-size:.78rem">${label}</td>
+          <td style="${bW?'color:var(--accent);font-weight:700':''}">${b}</td>
+        </tr>`;
+      };
+
+      const aScorer = DataLoader.countryTopScorer(currentT, isoA);
+      const bScorer = DataLoader.countryTopScorer(currentT, isoB);
+
+      el.innerHTML = `
+        <div class="grid-2" style="margin-bottom:1.5rem">
+          <div class="card" style="text-align:center">
+            <div style="font-size:3rem">${flag(isoA)}</div>
+            <div style="font-weight:800;font-size:1.2rem;margin-top:.5rem">${cA.name}</div>
+            <div style="color:var(--text-muted);font-size:.82rem">${stageName(cA.finishStage)}</div>
+          </div>
+          <div class="card" style="text-align:center">
+            <div style="font-size:3rem">${flag(isoB)}</div>
+            <div style="font-weight:800;font-size:1.2rem;margin-top:.5rem">${cB.name}</div>
+            <div style="color:var(--text-muted);font-size:.82rem">${stageName(cB.finishStage)}</div>
+          </div>
+        </div>
+
+        <p class="section-title">Tournament Comparison</p>
+        <div class="card table-wrap" style="margin-bottom:1.5rem">
+          <table>
+            <tr><th style="text-align:right">${cA.name}</th><th style="text-align:center"></th><th>${cB.name}</th></tr>
+            ${statRow('Played', cA.record.played, cB.record.played)}
+            ${statRow('Won', cA.record.won, cB.record.won)}
+            ${statRow('Drawn', cA.record.drawn, cB.record.drawn)}
+            ${statRow('Lost', cA.record.lost, cB.record.lost)}
+            ${statRow('Goals For', cA.record.goalsFor, cB.record.goalsFor)}
+            ${statRow('Goals Against', cA.record.goalsAgainst, cB.record.goalsAgainst)}
+            ${statRow('Points', cA.record.points, cB.record.points)}
+            <tr>
+              <td style="text-align:right">${aScorer ? aScorer.name + ' (' + aScorer.goals + ')' : '—'}</td>
+              <td style="text-align:center;color:var(--text-muted);font-size:.78rem">Top Scorer</td>
+              <td>${bScorer ? bScorer.name + ' (' + bScorer.goals + ')' : '—'}</td>
+            </tr>
+            <tr>
+              <td style="text-align:right">${cA.coach.name}</td>
+              <td style="text-align:center;color:var(--text-muted);font-size:.78rem">Coach</td>
+              <td>${cB.coach.name}</td>
+            </tr>
+          </table>
+        </div>
+
+        <p class="section-title">Direct Match${direct.length>1?'es':''}</p>
+        ${directHtml}
+      `;
+    }
+
+    document.getElementById('compare-btn').addEventListener('click', compare);
+
+    (async () => {
+      await DataLoader.getManifest();
+      const years = DataLoader.getAvailableYears();
+      const initYear = parseInt(getParam('year')) || DataLoader.getLatestYear();
+      buildYearSelector('year-selector', years, initYear, async (y) => { await loadYear(y); compare(); });
+      await loadYear(initYear);
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>World Map — a90plus</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/styles.css">
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-logo">a<em style="color:var(--accent)">90</em><span style="color:var(--text)">+</span></div>
+    <ul class="nav-links" id="nav-links">
+      <li><a href="../index.html">Home</a></li>
+      <li><a href="world-map.html">Map</a></li>
+      <li><a href="tournament.html">Tournament</a></li>
+      <li><a href="country.html">Country</a></li>
+      <li><a href="records.html">Records</a></li>
+      <li><a href="players.html">Players</a></li>
+      <li><a href="timeline.html">Timeline</a></li>
+      <li><a href="about.html">About</a></li>
+    </ul>
+    <div class="nav-spacer"></div>
+    <div class="nav-year-pill" id="nav-year">—</div>
+  </nav>
+
+  <div class="year-bar">
+    <span class="year-bar-label">Tournament</span>
+    <div class="year-selector" id="year-selector"></div>
+  </div>
+
+  <div class="page">
+    <div class="page-header">
+      <h1 class="page-title" id="map-title">World Cup Map</h1>
+      <p class="page-subtitle">Hover a country to see its result. Click to open its profile.</p>
+    </div>
+
+    <div id="map-container" style="min-height:360px">
+      <div class="state-box"><div class="spinner"></div>Loading map…</div>
+    </div>
+
+    <div class="map-legend" id="map-legend" style="margin-top:1rem"></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js"></script>
+  <script src="../assets/js/data-loader.js"></script>
+  <script src="../assets/js/ui.js"></script>
+  <script src="../assets/js/map.js"></script>
+  <script>
+    let currentYear = null;
+
+    async function loadMap(year) {
+      currentYear = year;
+      document.getElementById('map-title').textContent = `${year} World Cup Map`;
+      document.getElementById('nav-year').textContent = year;
+      setParams({ year });
+
+      const container = document.getElementById('map-container');
+      showLoading(container);
+
+      try {
+        const t = await DataLoader.getTournament(year);
+        await WorldMap.render('map-container', t);
+        WorldMap.buildLegend('map-legend');
+      } catch(e) {
+        showError(container, `Failed to load ${year} data: ${e.message}`);
+      }
+    }
+
+    (async () => {
+      const m = await DataLoader.getManifest();
+      const years = DataLoader.getAvailableYears();
+      const initYear = parseInt(getParam('year')) || DataLoader.getLatestYear();
+      buildYearSelector('year-selector', years, initYear, loadMap);
+      await loadMap(initYear);
+    })();
+  </script>
+</body>
+</html>
